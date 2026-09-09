@@ -1,55 +1,27 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import type { Frequency, UserState } from '../types';
+import type { UserState } from '../types';
 import { X } from 'lucide-react';
+import { useMockUsers } from '../hooks/useMockUsers';
+import { getFrequencyColor } from '../utils/colorUtils';
 
 interface RadarProps {
   currentUser: UserState;
   onSync: (user: UserState) => void;
   onLeave: () => void;
+  searchFilter?: string;
 }
 
-// Generate mock users based on current user frequency
-const generateMockUsers = (baseFreq: Frequency, count: number): UserState[] => {
-  const thoughts = [
-    "Just staring at the rain.",
-    "Need coffee immediately.",
-    "Lost in this new track.",
-    "Coding into the void.",
-    "Why is everything so loud?",
-    "Feeling oddly peaceful today.",
-    "Can't stop thinking about the future.",
-    "Just vibing.",
-    "Who else is awake?",
-    "Existential dread kicking in."
-  ];
-
-  return Array.from({ length: count }).map((_, i) => {
-    const energyOffset = (Math.random() - 0.5) * 0.4;
-    const moodOffset = (Math.random() - 0.5) * 0.4;
-    
-    return {
-      id: `user-${i}`,
-      frequency: {
-        energy: Math.max(0, Math.min(1, baseFreq.energy + energyOffset)),
-        mood: Math.max(0, Math.min(1, baseFreq.mood + moodOffset))
-      },
-      thought: thoughts[Math.floor(Math.random() * thoughts.length)]
-    };
-  });
-};
-
-export const Radar = ({ currentUser, onSync, onLeave }: RadarProps) => {
+export const Radar = ({ currentUser, onSync, onLeave, searchFilter = '' }: RadarProps) => {
   const [hoveredUser, setHoveredUser] = useState<UserState | null>(null);
 
-  // Memoize users so they don't regenerate on every re-render
-  const mockUsers = useMemo(() => generateMockUsers(currentUser.frequency, 8), [currentUser.frequency]);
+  const allMockUsers = useMockUsers(currentUser.frequency, 12);
 
-  const getColor = useCallback((freq: Frequency) => {
-    return `hsl(${freq.energy * 360}, ${50 + freq.mood * 50}%, ${30 + freq.mood * 30}%)`;
-  }, []);
+  const mockUsers = searchFilter.trim() 
+    ? allMockUsers.filter(u => u.thought.toLowerCase().includes(searchFilter.toLowerCase()))
+    : allMockUsers;
 
-  const myColor = getColor(currentUser.frequency);
+  const myColor = getFrequencyColor(currentUser.frequency);
 
   return (
     <section 
@@ -138,7 +110,7 @@ export const Radar = ({ currentUser, onSync, onLeave }: RadarProps) => {
           
           const x = Math.cos(angle) * radius;
           const y = Math.sin(angle) * radius;
-          const userColor = getColor(user.frequency);
+          const userColor = getFrequencyColor(user.frequency);
 
           return (
             <motion.div

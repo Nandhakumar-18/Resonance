@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { UserState } from '../types';
 import { X, Send } from 'lucide-react';
+import { getFrequencyColor } from '../utils/colorUtils';
 
 interface SyncProps {
   currentUser: UserState;
@@ -60,13 +61,8 @@ export const Sync = ({ currentUser, targetUser, onDisconnect }: SyncProps) => {
     setInput('');
   };
 
-  const getColor = (freq: Frequency) => `hsl(${freq.energy * 360}, ${50 + freq.mood * 50}%, ${30 + freq.mood * 30}%)`;
-  
-  // Need to import Frequency locally for the helper function or just use any/inline
-  type Frequency = { energy: number; mood: number };
-
-  const myColor = getColor(currentUser.frequency);
-  const targetColor = getColor(targetUser.frequency);
+  const myColor = getFrequencyColor(currentUser.frequency);
+  const targetColor = getFrequencyColor(targetUser.frequency);
 
   // Gradient background blending the two frequencies
   const backgroundStyle = {
