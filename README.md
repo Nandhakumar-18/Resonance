@@ -42,7 +42,7 @@ This project was built focusing on fluid, immersive, and responsive frontend exp
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/Resonance.git
+   git clone https://github.com/Nandhakumar-18/Resonance.git
    ```
 2. Navigate into the directory:
    ```bash
