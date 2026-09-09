@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import type { Frequency, UserState } from '../types';
 import { X } from 'lucide-react';
@@ -9,7 +9,7 @@ interface RadarProps {
   onLeave: () => void;
 }
 
-// Generate mock users around the user's frequency
+// Generate mock users based on current user frequency
 const generateMockUsers = (baseFreq: Frequency, count: number): UserState[] => {
   const thoughts = [
     "Just staring at the rain.",
@@ -25,7 +25,6 @@ const generateMockUsers = (baseFreq: Frequency, count: number): UserState[] => {
   ];
 
   return Array.from({ length: count }).map((_, i) => {
-    // Generate frequencies slightly deviated from base
     const energyOffset = (Math.random() - 0.5) * 0.4;
     const moodOffset = (Math.random() - 0.5) * 0.4;
     
@@ -40,41 +39,47 @@ const generateMockUsers = (baseFreq: Frequency, count: number): UserState[] => {
   });
 };
 
-export const Radar: React.FC<RadarProps> = ({ currentUser, onSync, onLeave }) => {
-  const [mockUsers, setMockUsers] = useState<UserState[]>([]);
+export const Radar = ({ currentUser, onSync, onLeave }: RadarProps) => {
   const [hoveredUser, setHoveredUser] = useState<UserState | null>(null);
 
-  useEffect(() => {
-    setMockUsers(generateMockUsers(currentUser.frequency, 8));
-  }, [currentUser.frequency]);
+  // Memoize users so they don't regenerate on every re-render
+  const mockUsers = useMemo(() => generateMockUsers(currentUser.frequency, 8), [currentUser.frequency]);
 
-  const getColor = (freq: Frequency) => `hsl(${freq.energy * 360}, ${50 + freq.mood * 50}%, ${30 + freq.mood * 30}%)`;
+  const getColor = useCallback((freq: Frequency) => {
+    return `hsl(${freq.energy * 360}, ${50 + freq.mood * 50}%, ${30 + freq.mood * 30}%)`;
+  }, []);
+
   const myColor = getColor(currentUser.frequency);
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-black text-white relative overflow-hidden">
+    <section 
+      className="flex flex-col items-center justify-center h-screen w-full bg-black text-white relative overflow-hidden"
+      aria-label="Radar Map"
+    >
       {/* Background ambient glow */}
       <motion.div 
-        className="absolute inset-0 opacity-10 filter blur-[120px]"
+        className="absolute inset-0 opacity-10 filter blur-[100px] pointer-events-none"
         animate={{ backgroundColor: myColor }}
         transition={{ duration: 1 }}
+        aria-hidden="true"
       />
       
       {/* Header */}
-      <div className="absolute top-6 left-6 z-20">
+      <header className="absolute top-6 left-6 z-20">
         <h1 className="text-xl tracking-widest font-light text-gray-400">RADAR</h1>
         <p className="text-xs text-gray-600 mt-1">Scanning for resonance...</p>
-      </div>
+      </header>
 
       <button 
         onClick={onLeave}
-        className="absolute top-6 right-6 z-20 p-2 rounded-full hover:bg-gray-800 transition-colors"
+        className="absolute top-6 right-6 z-20 p-2 rounded-full hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-600"
+        aria-label="Leave Radar"
       >
         <X size={24} className="text-gray-400" />
       </button>
 
-      {/* Radar UI */}
-      <div className="relative w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] flex items-center justify-center">
+      {/* Radar UI - Improved responsive sizing */}
+      <div className="relative w-full max-w-[300px] sm:max-w-[400px] md:max-w-[500px] aspect-square flex items-center justify-center">
         {/* Pulsing rings */}
         {[1, 2, 3].map((ring) => (
           <motion.div
@@ -92,41 +97,43 @@ export const Radar: React.FC<RadarProps> = ({ currentUser, onSync, onLeave }) =>
               delay: ring * 1.3,
               ease: "linear"
             }}
+            aria-hidden="true"
           />
         ))}
         
         {/* Static Rings */}
-        <div className="absolute w-full h-full rounded-full border border-gray-900/50" />
-        <div className="absolute w-2/3 h-2/3 rounded-full border border-gray-900/50" />
-        <div className="absolute w-1/3 h-1/3 rounded-full border border-gray-900/50" />
+        <div className="absolute w-full h-full rounded-full border border-gray-900/50" aria-hidden="true" />
+        <div className="absolute w-2/3 h-2/3 rounded-full border border-gray-900/50" aria-hidden="true" />
+        <div className="absolute w-1/3 h-1/3 rounded-full border border-gray-900/50" aria-hidden="true" />
         
         {/* Crosshairs */}
-        <div className="absolute w-full h-px bg-gray-900/50" />
-        <div className="absolute h-full w-px bg-gray-900/50" />
+        <div className="absolute w-full h-px bg-gray-900/50" aria-hidden="true" />
+        <div className="absolute h-full w-px bg-gray-900/50" aria-hidden="true" />
 
         {/* Center Node (Current User) */}
-        <div className="absolute z-10">
+        <div className="absolute z-10 flex flex-col items-center">
           <motion.div 
-            className="w-6 h-6 rounded-full flex items-center justify-center cursor-pointer shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+            className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center cursor-pointer shadow-[0_0_20px_rgba(255,255,255,0.2)]"
             animate={{ backgroundColor: myColor }}
+            aria-label="Your position"
           >
-            <div className="w-2 h-2 bg-white rounded-full" />
+            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full" />
           </motion.div>
           {/* Label for center */}
-          <div className="absolute top-8 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs text-white bg-black/50 px-2 py-1 rounded backdrop-blur-sm pointer-events-none border border-gray-800">
+          <div className="absolute top-8 whitespace-nowrap text-xs text-white bg-black/50 px-2 py-1 rounded backdrop-blur-sm pointer-events-none border border-gray-800">
             {currentUser.thought}
           </div>
         </div>
 
         {/* Other Users */}
         {mockUsers.map((user) => {
-          // Calculate distance and angle based on frequency difference
-          // This is a simplified mapping for visual effect
           const eDiff = user.frequency.energy - currentUser.frequency.energy;
           const mDiff = user.frequency.mood - currentUser.frequency.mood;
           
-          // Map -1..1 difference to -150..150 pixels (or similar)
-          const radius = Math.min(250, Math.sqrt(eDiff*eDiff + mDiff*mDiff) * 500 + 50); // Min distance from center
+          // Improved distance mapping to fit smaller screens better
+          // 50% of the container width is the max radius.
+          const maxRadius = window.innerWidth < 640 ? 120 : 220; 
+          const radius = Math.min(maxRadius, Math.sqrt(eDiff*eDiff + mDiff*mDiff) * 300 + 40); 
           const angle = Math.atan2(mDiff, eDiff);
           
           const x = Math.cos(angle) * radius;
@@ -143,9 +150,13 @@ export const Radar: React.FC<RadarProps> = ({ currentUser, onSync, onLeave }) =>
               onMouseEnter={() => setHoveredUser(user)}
               onMouseLeave={() => setHoveredUser(null)}
               onClick={() => onSync(user)}
+              role="button"
+              aria-label={`Sync with user thinking: ${user.thought}`}
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && onSync(user)}
             >
               <motion.div 
-                className="w-4 h-4 rounded-full"
+                className="w-3 h-3 sm:w-4 sm:h-4 rounded-full"
                 animate={{ backgroundColor: userColor, scale: hoveredUser?.id === user.id ? 1.5 : 1 }}
                 whileHover={{ scale: 1.5 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 15 }}
@@ -158,6 +169,7 @@ export const Radar: React.FC<RadarProps> = ({ currentUser, onSync, onLeave }) =>
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs text-gray-300 bg-gray-900/80 px-3 py-2 rounded-lg backdrop-blur-sm border border-gray-700 shadow-xl pointer-events-none min-w-[120px] text-center"
+                  role="tooltip"
                 >
                   "{user.thought}"
                   <div className="text-[10px] text-gray-500 mt-1 uppercase tracking-wider">Click to Sync</div>
@@ -167,6 +179,6 @@ export const Radar: React.FC<RadarProps> = ({ currentUser, onSync, onLeave }) =>
           );
         })}
       </div>
-    </div>
+    </section>
   );
 };

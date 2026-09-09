@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { UserState } from '../types';
 import { X, Send } from 'lucide-react';
@@ -15,10 +15,16 @@ type Message = {
   senderId: string;
 };
 
-export const Sync: React.FC<SyncProps> = ({ currentUser, targetUser, onDisconnect }) => {
+export const Sync = ({ currentUser, targetUser, onDisconnect }: SyncProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [timeLeft, setTimeLeft] = useState(60); // 60 seconds ephemeral sync
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   // Ephemeral timer
   useEffect(() => {
@@ -54,7 +60,11 @@ export const Sync: React.FC<SyncProps> = ({ currentUser, targetUser, onDisconnec
     setInput('');
   };
 
-  const getColor = (freq: any) => `hsl(${freq.energy * 360}, ${50 + freq.mood * 50}%, ${30 + freq.mood * 30}%)`;
+  const getColor = (freq: Frequency) => `hsl(${freq.energy * 360}, ${50 + freq.mood * 50}%, ${30 + freq.mood * 30}%)`;
+  
+  // Need to import Frequency locally for the helper function or just use any/inline
+  type Frequency = { energy: number; mood: number };
+
   const myColor = getColor(currentUser.frequency);
   const targetColor = getColor(targetUser.frequency);
 
@@ -64,39 +74,55 @@ export const Sync: React.FC<SyncProps> = ({ currentUser, targetUser, onDisconnec
   };
 
   return (
-    <div className="flex flex-col h-screen bg-black text-white relative" style={backgroundStyle}>
+    <section 
+      className="flex flex-col h-screen w-full bg-black text-white relative" 
+      style={backgroundStyle}
+      aria-label="Active Sync Session"
+    >
       {/* Header */}
-      <div className="flex justify-between items-center p-6 border-b border-gray-800/50 backdrop-blur-md z-10">
-        <div className="flex items-center gap-4">
+      <header className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-800/50 backdrop-blur-md z-10">
+        <div className="flex items-center gap-3 sm:gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: targetColor }} />
-            <span className="text-sm text-gray-300 font-medium">Syncing with someone...</span>
+            <div 
+              className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full animate-pulse" 
+              style={{ backgroundColor: targetColor }} 
+              aria-hidden="true"
+            />
+            <span className="text-xs sm:text-sm text-gray-300 font-medium">Syncing...</span>
           </div>
         </div>
         
-        <div className="flex items-center gap-6">
-          <div className="text-xs text-gray-500 font-mono">
+        <div className="flex items-center gap-4 sm:gap-6">
+          <div 
+            className="text-xs sm:text-sm text-gray-400 font-mono"
+            aria-live="polite"
+            aria-label={`${timeLeft} seconds remaining`}
+          >
             {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
           </div>
           <button 
             onClick={onDisconnect}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-gray-600 rounded-full p-1"
+            aria-label="Disconnect Sync"
           >
             <X size={20} />
           </button>
         </div>
-      </div>
+      </header>
 
       {/* Main Interaction Area */}
-      <div className="flex-1 flex flex-col p-6 overflow-hidden relative">
+      <main className="flex-1 flex flex-col p-4 sm:p-6 overflow-hidden relative">
         {/* Initial Thoughts Display */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl text-center opacity-10 pointer-events-none">
-          <div className="text-3xl font-light mb-8 italic text-white/50">"{currentUser.thought}"</div>
-          <div className="text-3xl font-light italic text-white/50">"{targetUser.thought}"</div>
+        <div 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl text-center opacity-[0.07] pointer-events-none px-4"
+          aria-hidden="true"
+        >
+          <div className="text-xl sm:text-3xl font-light mb-6 sm:mb-8 italic text-white/80">"{currentUser.thought}"</div>
+          <div className="text-xl sm:text-3xl font-light italic text-white/80">"{targetUser.thought}"</div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto flex flex-col gap-4 z-10 p-4 no-scrollbar">
+        <div className="flex-1 overflow-y-auto flex flex-col gap-3 sm:gap-4 z-10 p-2 sm:p-4 no-scrollbar" role="log" aria-live="polite">
           <AnimatePresence>
             {messages.map((msg) => {
               const isMe = msg.senderId === currentUser.id;
@@ -109,7 +135,7 @@ export const Sync: React.FC<SyncProps> = ({ currentUser, targetUser, onDisconnec
                   className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                 >
                   <div 
-                    className={`max-w-[70%] px-5 py-3 rounded-2xl backdrop-blur-md border ${
+                    className={`max-w-[85%] sm:max-w-[70%] px-4 sm:px-5 py-2 sm:py-3 rounded-2xl backdrop-blur-md border text-sm sm:text-base ${
                       isMe 
                         ? 'bg-white/10 border-white/20 text-white rounded-tr-sm' 
                         : 'bg-black/40 border-gray-800 text-gray-200 rounded-tl-sm'
@@ -121,31 +147,36 @@ export const Sync: React.FC<SyncProps> = ({ currentUser, targetUser, onDisconnec
               );
             })}
           </AnimatePresence>
+          <div ref={messagesEndRef} />
         </div>
-      </div>
+      </main>
 
       {/* Input Area */}
-      <div className="p-6 border-t border-gray-800/50 backdrop-blur-md z-10">
+      <footer className="p-4 sm:p-6 border-t border-gray-800/50 backdrop-blur-md z-10">
         <form onSubmit={handleSend} className="max-w-3xl mx-auto relative flex items-center">
+          <label htmlFor="message-input" className="sr-only">Type a message</label>
           <input
+            id="message-input"
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Send a thought..."
-            className="w-full bg-gray-900/50 border border-gray-700 rounded-full pl-6 pr-14 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-gray-500 transition-colors"
+            className="w-full bg-gray-900/50 border border-gray-700 rounded-full pl-5 sm:pl-6 pr-12 sm:pr-14 py-3 sm:py-4 text-sm sm:text-base text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-600 transition-shadow"
+            autoComplete="off"
           />
           <button 
             type="submit"
             disabled={!input.trim()}
-            className="absolute right-2 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="absolute right-1.5 sm:right-2 p-2 sm:p-2.5 rounded-full bg-white/10 text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
+            aria-label="Send message"
           >
-            <Send size={18} />
+            <Send size={16} className="sm:w-[18px] sm:h-[18px]" />
           </button>
         </form>
-        <div className="text-center mt-3 text-[10px] text-gray-600 uppercase tracking-widest">
+        <div className="text-center mt-2 sm:mt-3 text-[9px] sm:text-[10px] text-gray-600 uppercase tracking-widest">
           Messages disappear after sync ends
         </div>
-      </div>
-    </div>
+      </footer>
+    </section>
   );
 };
