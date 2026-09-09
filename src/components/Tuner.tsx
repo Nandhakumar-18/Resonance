@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Frequency } from '../types';
+import type { Frequency } from '../types';
 import { Radio } from 'lucide-react';
 
 interface TunerProps {

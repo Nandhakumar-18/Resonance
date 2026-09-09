@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserState } from '../types';
+import type { UserState } from '../types';
 import { X, Send } from 'lucide-react';
 
 interface SyncProps {

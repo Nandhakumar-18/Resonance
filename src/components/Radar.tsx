@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Frequency, UserState } from '../types';
+import type { Frequency, UserState } from '../types';
 import { X } from 'lucide-react';
 
 interface RadarProps {

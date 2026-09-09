@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Tuner } from './components/Tuner';
 import { Radar } from './components/Radar';
 import { Sync } from './components/Sync';
-import { AppView, Frequency, UserState } from './types';
+import type { AppView, Frequency, UserState } from './types';
 
 function App() {
   const [view, setView] = useState<AppView>('TUNER');
